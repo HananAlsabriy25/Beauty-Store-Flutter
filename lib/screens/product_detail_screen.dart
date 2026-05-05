@@ -9,9 +9,9 @@ class ProductDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-
     final shopProvider = Provider.of<ShopProvider>(context);
     final isFavorite = shopProvider.favoriteItems.any((element) => element['name'] == product['name']);
+    
     return Scaffold(
       appBar: AppBar(
         title: Text(product['name']!),
@@ -21,7 +21,6 @@ class ProductDetailScreen extends StatelessWidget {
       body: SingleChildScrollView(
         child: Column(
           children: [
-           
             Image.asset(
               product['image']!, 
               fit: BoxFit.cover, 
@@ -36,40 +35,79 @@ class ProductDetailScreen extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      
                       Expanded(
                         child: Text(
                           product['name']!, 
                           style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                         ),
                       ),
-                      
                       IconButton(
                         icon: Icon(isFavorite ? Icons.favorite : Icons.favorite_border),
                         color: Colors.red,
                         onPressed: () {
-                          shopProvider.toggleFavorite(product as Map<String, String>);
+                          shopProvider.toggleFavorite(product);
                         },
                       ),
                     ],
                   ),
                   const SizedBox(height: 8),
-                  
                   Text(
                     product['price']!, 
                     style: const TextStyle(fontSize: 20, color: Colors.pink, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 15),
                   const Text(
-                    'الوصف:',
+                    ':الوصف',
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 5),
-                 
                   Text(
                     product['desc']!, 
                     style: const TextStyle(fontSize: 16, color: Colors.black87),
                   ),
+                  
+                
+                  const SizedBox(height: 30), 
+                  SizedBox(
+                    width: double.infinity,
+                    height: 55,
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                      
+                        shopProvider.addToCart(product);
+                        
+                       
+                        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'تمت إضافة ${product['name']} إلى السلة',
+                              textAlign: TextAlign.center,
+                            ),
+                            backgroundColor: Colors.pink,
+                            duration: const Duration(seconds: 2),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.add_shopping_cart, color: Colors.white),
+                      label: const Text(
+                        'إضافة إلى السلة',
+                        style: TextStyle(
+                          fontSize: 18, 
+                          fontWeight: FontWeight.bold, 
+                          color: Colors.white
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.pink,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: 5,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20), 
                 ],
               ),
             ),

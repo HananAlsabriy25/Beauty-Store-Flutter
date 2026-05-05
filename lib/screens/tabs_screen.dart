@@ -1,11 +1,10 @@
-import 'package:beauty_store/screens/FavoritesScreen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../providers/shop_providers.dart';
+import '../providers/shop_providers.dart'; 
 import 'products_screen.dart';
+import 'FavoritesScreen.dart'; 
 import 'cart_screen.dart';
 import 'profile_screen.dart';
-
 
 class TabsScreen extends StatefulWidget {
   @override
@@ -15,12 +14,11 @@ class TabsScreen extends StatefulWidget {
 class _TabsScreenState extends State<TabsScreen> {
   int _selectedIndex = 0;
 
-  
-final List<Widget> _pages = [
+  final List<Widget> _pages = [
     ProductsScreen(),
     FavoritesScreen(),
     CartScreen(),
-    ProfileScreen(), 
+    ProfileScreen(),
   ];
 
   void _selectPage(int index) {
@@ -31,7 +29,6 @@ final List<Widget> _pages = [
 
   @override
   Widget build(BuildContext context) {
-    
     final cartCount = Provider.of<ShopProvider>(context).cartCount;
 
     return Scaffold(
@@ -41,7 +38,7 @@ final List<Widget> _pages = [
         onTap: _selectPage,
         selectedItemColor: Colors.pink,
         unselectedItemColor: Colors.grey,
-        type: BottomNavigationBarType.fixed, 
+        type: BottomNavigationBarType.fixed,
         items: [
           const BottomNavigationBarItem(icon: Icon(Icons.home), label: 'الرئيسية'),
           const BottomNavigationBarItem(icon: Icon(Icons.favorite), label: 'المفضلة'),
@@ -49,20 +46,18 @@ final List<Widget> _pages = [
             icon: Stack(
               children: [
                 const Icon(Icons.shopping_cart),
-                if (cartCount > 0) 
+                if (cartCount > 0)
                   Positioned(
                     right: 0,
+                    top: 0,
                     child: Container(
-                      padding: const EdgeInsets.all(1),
-                      decoration: BoxDecoration(
-                        color: Colors.red, 
-                        borderRadius: BorderRadius.circular(6)
-                      ),
-                      constraints: const BoxConstraints(minWidth: 12, minHeight: 12),
+                      padding: const EdgeInsets.all(2),
+                      decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+                      constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
                       child: Text(
-                        '$cartCount', 
-                        style: const TextStyle(color: Colors.white, fontSize: 8), 
-                        textAlign: TextAlign.center
+                        '$cartCount',
+                        style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                        textAlign: TextAlign.center,
                       ),
                     ),
                   ),
@@ -70,7 +65,7 @@ final List<Widget> _pages = [
             ),
             label: 'السلة',
           ),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'حسابي'),
+          const BottomNavigationBarItem(icon: Icon(Icons.person), label: 'حسابي'),
         ],
       ),
     );
