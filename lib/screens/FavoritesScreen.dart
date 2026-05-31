@@ -1,42 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/shop_providers.dart';
-import 'product_detail_screen.dart';
 
 class FavoritesScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    
-    final shopProvider = Provider.of<ShopProvider>(context);
-    final favorites = shopProvider.favoriteItems;
+    // تصفية المنتجات للحصول على المفضلة فقط
+    final favoriteProducts = Provider.of<ShopProvider>(context)
+        .products
+        .where((prod) => prod.isFavorite)
+        .toList();
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('منتجاتي المفضلة'),
-        backgroundColor: Colors.pink,
-        centerTitle: true,
-      ),
-      body: favorites.isEmpty
-          ? const Center(
-              child: Text(
-                'لم تقومي بإضافة أي منتج للمفضلة بعد!',
-                style: TextStyle(fontSize: 16, color: Colors.grey),
-              ),
-            )
+      body: favoriteProducts.isEmpty
+          ? Center(child: Text('لا توجد منتجات في المفضلة'))
           : ListView.builder(
-              itemCount: favorites.length,
+              itemCount: favoriteProducts.length,
               itemBuilder: (ctx, i) => ListTile(
-                leading: Image.asset(favorites[i]['image']!, width: 50),
-                title: Text(favorites[i]['name']!),
-                subtitle: Text(favorites[i]['price']!),
-                trailing: const Icon(Icons.favorite, color: Colors.red),
-                onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => ProductDetailScreen(product: favorites[i]),
-                    ),
-                  );
-                },
+                leading: Image.network(favoriteProducts[i].imageUrl),
+                title: Text(favoriteProducts[i].title),
+                subtitle: Text('\$${favoriteProducts[i].price}'),
               ),
             ),
     );

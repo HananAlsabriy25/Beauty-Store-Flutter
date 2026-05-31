@@ -1,81 +1,91 @@
 import 'package:flutter/material.dart';
-import 'category_products_screen.dart';
-class ProductsScreen extends StatelessWidget {
-  final List<Map<String, dynamic>> categories = [
-    {'name': 'عطور راقية', 'image': 'assets/images/perf1.jpg', 'color': Colors.pink[50]},
-    {'name': 'مكياج احترافي', 'image': 'assets/images/make1.jpg', 'color': Colors.purple[50]},
-    {'name': 'عناية بالبشرة', 'image': 'assets/images/skin1.jpg', 'color': Colors.blue[50]},
-    {'name': 'عناية بالشعر', 'image': 'assets/images/hair1.jpg', 'color': Colors.green[50]},
-  ];
+import 'package:provider/provider.dart';
+import '../providers/shop_providers.dart';
+import '../models/product.dart';
+
+class ProductsScreen extends StatefulWidget {
+  @override
+  _ProductsScreenState createState() => _ProductsScreenState();
+}
+
+class _ProductsScreenState extends State<ProductsScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // جلب البيانات عند فتح التطبيق (طلب الدكتور الأول)
+    Future.delayed(Duration.zero).then((_) {
+      Provider.of<ShopProvider>(context, listen: false).fetchAndSetProducts();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
+    // تعريف shopData للوصول لبيانات الـ Provider
+    final shopData = Provider.of<ShopProvider>(context);
+    final products = shopData.products;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('متجر الجمال - الأقسام'),
+        title: const Text('متجر الجمال'),
         backgroundColor: Colors.pink,
         centerTitle: true,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.shopping_cart),
-            onPressed: () {}, 
-          ),
-        ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(15.0),
-        child: GridView.builder(
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2, 
-            childAspectRatio: 1,
-            crossAxisSpacing: 15,
-            mainAxisSpacing: 15,
-          ),
-          itemCount: categories.length,
-          itemBuilder: (ctx, i) => InkWell(
-           onTap: () {
-  Navigator.of(context).push(
-    MaterialPageRoute(
-      builder: (context) => CategoryProductsScreen(
-        categoryName: categories[i]['name'], 
-      ),
-    ),
-  );
-},
-            child: Container(
-              decoration: BoxDecoration(
-                color: categories[i]['color'],
-                borderRadius: BorderRadius.circular(15),
-                border: Border.all(color: Colors.pink.withOpacity(0.2)),
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                 
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.all(10.0),
-                      child: Image.asset(
-                        categories[i]['image'], 
-                        fit: BoxFit.contain,
-                        errorBuilder: (context, error, stackTrace) {
-                          return const Icon(Icons.broken_image, size: 50, color: Colors.grey);
-                        },
+      // استخدام isLoading لإظهار دائرة التحميل (طلب الدكتور الثالث)
+      body: shopData.isLoading
+          ? const Center(child: CircularProgressIndicator(color: Colors.pink))
+          : products.isEmpty
+              ? const Center(child: Text('لا توجد منتجات حالياً، تأكد من الإنترنت'))
+              : GridView.builder(
+                  padding: const EdgeInsets.all(10.0),
+                  itemCount: products.length,
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    childAspectRatio: 0.75,
+                    crossAxisSpacing: 10,
+                    mainAxisSpacing: 10,
+                  ),
+                  itemBuilder: (ctx, i) {
+                    final product = products[i];
+                    return ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: GridTile(
+                        footer: GridTileBar(
+                          backgroundColor: Colors.black87,
+                          // زر المفضلة (طلب الدكتور الثاني)
+                          leading: IconButton(
+                            icon: Icon(
+                              product.isFavorite ? Icons.favorite : Icons.favorite_border,
+                              color: Colors.pink,
+                            ),
+                            onPressed: () {
+                              shopData.toggleFavorite(product.id);
+                            },
+                          ),
+                          title: Text(
+                            product.title,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(fontSize: 10),
+                          ),
+                          trailing: IconButton(
+                            icon: const Icon(Icons.shopping_cart, color: Colors.pink),
+                            onPressed: () {
+                              shopData.addToCart(product);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('تمت إضافة ${product.title} للسلة')),
+                              );
+                            },
+                          ),
+                        ),
+                        // عرض الصورة من الـ API (طلب الدكتور)
+                        child: Image.network(
+                          product.imageUrl,
+                          fit: BoxFit.cover,
+                          errorBuilder: (ctx, error, stackTrace) => const Icon(Icons.broken_image),
+                        ),
                       ),
-                    ),
-                  ),
-                  const SizedBox(height: 5),
-                  Text(
-                    categories[i]['name'],
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 10),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
+                    );
+                  },
+                ),
     );
   }
 }

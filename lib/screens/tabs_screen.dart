@@ -29,7 +29,8 @@ class _TabsScreenState extends State<TabsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final cartCount = Provider.of<ShopProvider>(context).cartCount;
+// للتأكد من عدد العناصر في السلة
+final cartCount = Provider.of<ShopProvider>(context).cartItems.length;
 
     return Scaffold(
       body: _pages[_selectedIndex],
