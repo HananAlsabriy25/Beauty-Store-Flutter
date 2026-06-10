@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
+import 'package:cloud_firestore/cloud_firestore.dart'; // استدعاء الفايرستور السحابي
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/product.dart';
 
@@ -31,23 +31,28 @@ class ShopProvider with ChangeNotifier {
     return total;
   }
 
-  List<Product> _buildProducts(List<dynamic> items, SharedPreferences prefs) {
+  // دالة مساعدة لبناء المنتجات ودمج حالة المفضلة المحلية
+  List<Product> _buildProductsFromFirestore(List<QueryDocumentSnapshot> docs, SharedPreferences prefs) {
     final List<Product> loadedProducts = [];
-    for (var item in items) {
-      final isFav = prefs.getBool('fav_${item['id']}') ?? false;
-      final product = Product.fromJson(item as Map<String, dynamic>);
+    for (var doc in docs) {
+      final data = doc.data() as Map<String, dynamic>;
+      
+      // نضمن إدراج الـ id الخاص بالوثيقة السحابية داخل البيانات
+      data['id'] = doc.id; 
+
+      final isFav = prefs.getBool('fav_${doc.id}') ?? false;
+      final product = Product.fromJson(data);
       product.isFavorite = isFav;
       loadedProducts.add(product);
     }
     return loadedProducts;
   }
 
+  // جلب البيانات السحابية من Cloud Firestore
   Future<void> fetchAndSetProducts() async {
     _isLoading = true;
     notifyListeners(); 
 
-    const url = 'https://api.allorigins.win/raw?url=https://dummyjson.com/products';
-    
     try {
       final prefs = await SharedPreferences.getInstance();
       
@@ -58,24 +63,43 @@ class ShopProvider with ChangeNotifier {
       }
 
       try {
-        final response = await http.get(Uri.parse(url)).timeout(const Duration(seconds: 15));
-        if (response.statusCode == 200) {
-          final responseData = json.decode(response.body) as Map<String, dynamic>;
-          final extractedData = (responseData['products'] as List<dynamic>? ?? []);
+        // الاتصال بمجموعة المنتجات في الفايرستور وجلبها
+        final querySnapshot = await FirebaseFirestore.instance
+            .collection('products')
+            .get()
+            .timeout(const Duration(seconds: 15));
 
-          _products = _buildProducts(extractedData, prefs);
-          await prefs.setString('offline_products', json.encode(extractedData));
+        if (querySnapshot.docs.isNotEmpty) {
+          _products = _buildProductsFromFirestore(querySnapshot.docs, prefs);
+          
+          // تحديث الكاش المحلي للأوفلاين ببيانات الفايرستور الجديدة
+          final offlineList = querySnapshot.docs.map((doc) {
+            final d = doc.data() as Map<String, dynamic>;
+            d['id'] = doc.id;
+            return d;
+          }).toList();
+          
+          await prefs.setString('offline_products', json.encode(offlineList));
         } else {
-          throw Exception('Failed to load products');
+          debugPrint('مجموعة المنتجات فارغة في الفايرستور');
         }
       } catch (error) {
+        debugPrint('فشل الجلب السحابي، جاري التحميل من الكاش المحلي: $error');
+        // في حال انقطاع الإنترنت، يتم جلب آخر كاش تم حفظه محلياً
         if (prefs.containsKey('offline_products')) {
           final offlineData = json.decode(prefs.getString('offline_products')!) as List<dynamic>;
-          _products = _buildProducts(offlineData, prefs);
+          final List<Product> loadedProducts = [];
+          for (var item in offlineData) {
+            final isFav = prefs.getBool('fav_${item['id']}') ?? false;
+            final product = Product.fromJson(item as Map<String, dynamic>);
+            product.isFavorite = isFav;
+            loadedProducts.add(product);
+          }
+          _products = loadedProducts;
         }
       }
     } catch (e) {
-      debugPrint('حدث خطأ: $e');
+      debugPrint('حدث خطأ أثناء التهيئة: $e');
     } finally {
       _isLoading = false;
       notifyListeners(); 
@@ -98,10 +122,8 @@ class ShopProvider with ChangeNotifier {
     final existingIndex = _cartItems.indexWhere((item) => item['id'] == product.id);
     
     if (existingIndex >= 0) {
-      // إذا كان المنتج موجوداً مسبقاً، نزيد الكمية
       _cartItems[existingIndex]['quantity'] = (_cartItems[existingIndex]['quantity'] ?? 1) + 1;
     } else {
-      // إذا كان منتجاً جديداً
       _cartItems.add({
         'id': product.id,
         'title': product.title,
